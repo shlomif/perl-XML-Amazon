@@ -12,7 +12,7 @@ use URI::Escape qw();
 use utf8;
 binmode(STDOUT, ":utf8");
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new{
 	my($pkg, %options) = @_;
@@ -281,26 +281,26 @@ associate ID (default: webservices-20, which is Amazon default).
 
 =head2 $XML_Amazon->asin(ASIN)
 
-Responses an XML::Amazon::Item object whose ASIN is as given.
+Returns an XML::Amazon::Item object whose ASIN is as given.
 
 
 =head2 $XML_Amazon->search(keywords => 'Perl', page => '2', type => 'Books')
 
-Responses an XML::Amazon::Collection object. i<type> can be Blended, Books, Music, DVD, etc.
+Returns an XML::Amazon::Collection object. i<type> can be Blended, Books, Music, DVD, etc.
 
 =head2 $XML_Amazon->is_success
 
-Responses 1 when successful, otherwise 0. 
+Returns 1 when successful, otherwise 0. 
 
 =head2 $XML_Amazon_Collection->collection
 
-Responses a list of XML::Amazon::Item objects.
+Returns a list of XML::Amazon::Item objects.
 
 =head2 $XML_Amazon_Item->title
 
 =head2 $XML_Amazon_Item->made_by
 
-Responses authors when the item is a book, and likewise.
+Returns authors when the item is a book, and likewise.
 
 =head2 $XML_Amazon_Item->publisher
 
@@ -308,7 +308,7 @@ Responses authors when the item is a book, and likewise.
 
 =head2 $XML_Amazon_Item->image(size)
 
-Responses the URL of the cover image. i<size> can be s, m, or l.
+Returns the URL of the cover image. I<size> can be s, m, or l.
 
 =head2 $XML_Amazon_Item->price
 
@@ -320,7 +320,7 @@ Yusuke Sugiyama, E<lt>ally@blinkingstar.netE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Hedwig
+Copyright (C) 2006 by Yusuke Sugiyama
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.6 or,
