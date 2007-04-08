@@ -9,10 +9,9 @@ use XML::Amazon::Collection;
 use Data::Dumper qw ();
 use URI::Escape qw();
 
-use utf8;
-binmode(STDOUT, ":utf8");
+binmode STDOUT => ":bytes";
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new{
 	my($pkg, %options) = @_;
@@ -251,17 +250,18 @@ XML::Amazon - Perl extension for getting information from Amazon
 	
 	my $amazon = XML::Amazon->new(token => AMAZON-ID, locale => 'uk');
 	
-	$item->asin('0596101058');## ASIN access
+	my $item = $amazon->asin('0596101058');## ASIN access
 	
 	if ($amazon->is_success){
 		print $item->title;
 	}
 	
-	my $items;
-	$items = $amazon->search(keywords => 'Perl');## Search by 'Perl'
+	my $items = $amazon->search(keywords => 'Perl');## Search by 'Perl'
 	
-	foreach my $item ($items){
-	print $item->title . '\n';
+	foreach my $item ($items->collection){
+	my $title = $item->title;
+	utf8::encode($title);
+	print $title . "\n";
 	}
 
 =head1 DESCRIPTION

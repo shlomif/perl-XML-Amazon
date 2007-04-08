@@ -4,8 +4,8 @@ use strict;
 use XML::Amazon;
 use LWP::Simple;
 use XML::Simple;
-use utf8;
-binmode(STDOUT, ":utf8");
+
+binmode STDOUT => ":bytes";
 
 sub new{
 	my $pkg = shift;
