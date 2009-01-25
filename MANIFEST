@@ -1,3 +1,8 @@
+inc/Module/Install.pm
+inc/Module/Install/Base.pm
+inc/Module/Install/Makefile.pm
+inc/Module/Install/MakeMaker.pm
+inc/Module/Install/Metadata.pm
 lib/XML/Amazon.pm
 lib/XML/Amazon/Collection.pm
 lib/XML/Amazon/Item.pm

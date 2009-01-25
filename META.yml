@@ -1,15 +1,22 @@
---- #YAML:1.0
-name:                XML-Amazon
-version:             0.03
-abstract:            ~
-license:             ~
-generated_by:        ExtUtils::MakeMaker version 6.31
-distribution_type:   module
-requires:     
-    Data::Dumper:                  0
-    LWP::Simple:                   0
-    URI::Escape:                   0
-    XML::Simple:                   0
+---
+author: ~
+configure_requires:
+  ExtUtils::MakeMaker: 6.44
+distribution_type: module
+generated_by: 'Module::Install version 0.750'
+license: unknown
 meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
-    version: 1.2
+  url: http://module-build.sourceforge.net/META-spec-v1.3.html
+  version: 1.3
+module_name: XML::Amazon
+name: XML-Amazon
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  Data::Dumper: 0
+  LWP::Simple: 0
+  URI::Escape: 0
+  XML::Simple: 0
+version: 0.04
