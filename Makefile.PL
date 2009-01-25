@@ -1,15 +1,8 @@
 use inc::Module::Install;
-WriteMakefile
-(
-          'NAME' => 'XML::Amazon',
-          'VERSION_FROM' => 'lib/XML/Amazon.pm',
-          'PREREQ_PM' => {
-                           'LWP::Simple' => '0',
-						   'XML::Simple' => '0',
-						   'Data::Dumper' => '0',
-						   'URI::Escape' => '0'
-                         },
-          'INSTALLDIRS' => 'site',
-          'PL_FILES' => {}
-        )
-;
+name    'XML-Amazon';
+all_from       'lib/XML/Amazon.pm';
+requires 'LWP::Simple' => '0';
+requires 'XML::Simple' => '0';
+requires 'Data::Dumper' => '0';
+requires 'URI::Escape' => '0';
+WriteAll;
