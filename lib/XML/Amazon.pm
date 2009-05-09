@@ -1,6 +1,7 @@
 package XML::Amazon;
 
 use strict;
+use utf8;
 
 use LWP::Simple qw ();
 use XML::Simple;
@@ -8,23 +9,45 @@ use XML::Amazon::Item;
 use XML::Amazon::Collection;
 use Data::Dumper qw ();
 use URI::Escape qw();
+use Digest::SHA qw(hmac_sha256_hex hmac_sha256_base64);
 
 binmode STDOUT => ":bytes";
 
-our $VERSION = '0.05';
+our $VERSION = '0.10';
 
 sub new{
 	my($pkg, %options) = @_;
-	
+	die 'No Access Key ID provided!' unless $options{'token'};
+	die 'No Secret Access Key provided!' unless $options{'sak'};
 	my $locale = $options{'locale'};
 	$locale ||= "us";
 	die "Invalid locale" unless $locale eq "jp" || $locale eq "uk" || $locale eq "fr" || $locale eq "us" || $locale eq "de"|| $locale eq "ca";
-	my $associate = $options{'associate'};
-	$associate ||= 'webservices-20';
+	my $associate = $options{'associate'} || 'webservices-20';
+	
+	my $url;
+	
+	$url = 'ecs.amazonaws.jp' if $locale eq "jp";
+	$url = 'ecs.amazonaws.co.uk' if $locale eq "uk";
+	$url = 'ecs.amazonaws.fr' if $locale eq "fr";
+	$url = 'ecs.amazonaws.de' if $locale eq "de";
+	$url = 'ecs.amazonaws.ca' if $locale eq "ca";
+	$url = 'ecs.amazonaws.com' if $locale eq "us";
+	
+	my $req = {
+		'Service' => 'AWSECommerceService',
+		'AWSAccessKeyId' => $options{'token'},
+		'AssociateTag' => $associate,
+		'Version' => '2009-03-31',
+		'Timestamp' => '2009-05-10T12:00:00Z'
+	};
+	
 	bless{
 		token => $options{'token'},
+		sak => $options{'sak'},
 		associate => $associate,
 		locale => $locale,
+		url => $url,
+		req => $req,
 		data => undef,
 		success => '0'
 	}, $pkg;
@@ -42,29 +65,21 @@ sub get{
 sub asin{
 	my $self = shift;
 	my $asin = shift;
-	my $url;
+	my $url = $self->{url};
 	my $ITEM = XML::Amazon::Item->new();
 	
 	warn 'Apparently not an appropriate ASIN' if $asin =~ /[^a-zA-Z0-9]/;
 	
-	$url = 'http://webservices.amazon.co.jp/onca/xml' if $self->{locale} eq "jp";
-	$url = 'http://webservices.amazon.co.uk/onca/xml' if $self->{locale} eq "uk";
-	$url = 'http://webservices.amazon.fr/onca/xml' if $self->{locale} eq "fr";
-	$url = 'http://webservices.amazon.de/onca/xml' if $self->{locale} eq "de";
-	$url = 'http://webservices.amazon.ca/onca/xml' if $self->{locale} eq "ca";
-	$url = 'http://webservices.amazon.com/onca/xml' if $self->{locale} eq "us";
-	$url .= '?Service=AWSECommerceService';
-	$url .= '&AWSAccessKeyId=' . $self->{token};
-	$url .= '&AssociateTag=' . $self->{associate};
-	$url .= '&Operation=ItemLookup';
-	$url .= '&ResponseGroup=Images,ItemAttributes';
-	$url .= '&ItemId=' . $asin;
-	$url .= '&ContentType=text/xml';
-	$url .= '&Version=2006-06-07';
+	my %params = %{$self->{req}};
 	
-	my $data = LWP::Simple::get($url)
-		or warn 'Couldn\'t get the XML';
+	$params{'Operation'} = 'ItemLookup';
+	$params{'ResponseGroup'} = 'Images,ItemAttributes';
+	$params{'ItemId'} = $asin;
+	$params{'Version'} = '2009-03-31';
+	$params{'Timestamp'} = '2009-05-10T12:00:00Z';
 	
+	my $data = $self->get_data(\%params);
+		
 	my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Creator', 'Author', 'Artist', 'Director', 'Actor']);
 	my $pl = $xs->XMLin($data);
 	$self->{data} = $pl;
@@ -128,32 +143,19 @@ sub asin{
 
 sub search{
 	my($self, %options) = @_;
-	my $keywords = URI::Escape::uri_escape($options{'keywords'});
-	my $type = $options{'type'};
-	$type ||= "Blended";
-	my $page = $options{'page'};
-	$page ||= 1;
+	my $keywords = $options{'keywords'};
+	my $type = $options{'type'} || "Blended";
+	my $page = $options{'page'} || 1;
 	
-	my $url;
+	my %params = %{$self->{req}};
 	
-	$url = 'http://webservices.amazon.co.jp/onca/xml' if $self->{locale} eq "jp";
-	$url = 'http://webservices.amazon.co.uk/onca/xml' if $self->{locale} eq "uk";
-	$url = 'http://webservices.amazon.fr/onca/xml' if $self->{locale} eq "fr";
-	$url = 'http://webservices.amazon.de/onca/xml' if $self->{locale} eq "de";
-	$url = 'http://webservices.amazon.ca/onca/xml' if $self->{locale} eq "ca";
-	$url = 'http://webservices.amazon.com/onca/xml' if $self->{locale} eq "us";
-	$url .= '?Service=AWSECommerceService';
-	$url .= '&AWSAccessKeyId=' . $self->{token};
-	$url .= '&AssociateTag=' . $self->{associate};
-	$url .= '&Operation=ItemSearch';
-	$url .= '&ResponseGroup=Images,ItemAttributes';
-	$url .= '&Keywords=' . $keywords;
-	$url .= '&ItemPage=' . $page;
-	$url .= '&ContentType=text/xml';
-	$url .= '&SearchIndex=' . $type;
-	$url .= '&Version=2006-06-07';
-	my $data = LWP::Simple::get($url)
-		or return 'Couldn\'t get the XML.';
+	$params{'Operation'} = 'ItemSearch';
+	$params{'SearchIndex'} = $type;
+	$params{'ResponseGroup'} = 'Images,ItemAttributes';
+	$params{'Keywords'} = $keywords;
+	$params{'ItemPage'} = $page;
+	
+	my $data = $self->get_data(\%params);
 	
 	my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Item', 'Creator', 'Author', 'Artist', 'Actor', 'Director']);
 	my $pl = $xs->XMLin($data);
@@ -161,8 +163,12 @@ sub search{
 	
 	my $collection = XML::Amazon::Collection->new();
 	if ($pl->{Items}->{Item}->[0]->{ASIN}){
-		for (my $i = 0; $pl->{Items}->{Item}->[$i]; $i++){
+		$collection->{total_results} = $pl->{Items}->{TotalResults};
+		$collection->{total_pages} = $pl->{Items}->{TotalPages};
+		$collection->{current_page} = $pl->{Items}->{Request}->{ItemSearchRequest}->{ItemPage};
 
+		for (my $i = 0; $pl->{Items}->{Item}->[$i]; $i++){
+			
 			my $new_item = XML::Amazon::Item->new();
 			
 			$new_item->{asin} = $pl->{Items}->{Item}->[$i]->{ASIN};
@@ -231,6 +237,32 @@ sub is_success{
 	
 }
 
+sub get_data {
+	my $self = shift;
+	my $params = shift;
+	
+	my $url = $self->{url};
+	my @param;
+	foreach my $key (sort { $a cmp $b } keys %{$params}){
+		push @param, $key . '=' . URI::Escape::uri_escape(${$params}{$key}, "^A-Za-z0-9\-_.~");
+	}
+	
+	my $string_to_sign = 'GET' . "\n" . $url . "\n" . '/onca/xml' . "\n" .  join('&', @param);
+	
+	my $sign = hmac_sha256_base64($string_to_sign,$self->{sak});
+	
+	while (length($sign) % 4) {
+		$sign .= '=';
+	}
+	
+	push @param, 'Signature=' . URI::Escape::uri_escape($sign, "^A-Za-z0-9\-_.~");
+	
+	my $data = LWP::Simple::get('http://' . $url . '/onca/xml?' . join('&', @param))
+		or warn 'Couldn\'t get the XML';
+	return $data;
+	
+}
+
 sub Dumper{
 	my $self = shift;
 	print Data::Dumper::Dumper($self->{data});
@@ -248,7 +280,7 @@ XML::Amazon - Perl extension for getting information from Amazon
 
 	use XML::Amazon;
 	
-	my $amazon = XML::Amazon->new(token => AMAZON-ID, locale => 'uk');
+	my $amazon = XML::Amazon->new(token => AMAZON-ID, sak => Secret Access Key, locale => 'uk');
 	
 	my $item = $amazon->asin('0596101058');## ASIN access
 	
@@ -261,7 +293,7 @@ XML::Amazon - Perl extension for getting information from Amazon
 	foreach my $item ($items->collection){
 	my $title = $item->title;
 	utf8::encode($title);
-	print $title . "\n";
+	print $title . "¥n";
 	}
 
 =head1 DESCRIPTION
@@ -271,9 +303,9 @@ connect to US, JP, UK, FR, DE and CA.
 
 =head1 USAGE
 
-=head2 XML::Amazon->new(token => AMAZON-ID, associate => ASSOCIATE-ID, locale => UK)
+=head2 XML::Amazon->new(token => AMAZON-ID, associate => ASSOCIATE-ID, sak => Secret Access Key, locale => UK)
 
-Creates a new empty XML::Amazon object. You should specify your Amazon Web Service ID
+Creates a new empty XML::Amazon object. You should specify your Amazon Web Service ID and Secret Access Key
 (which can be obteined thorough 
 http://www.amazon.com/gp/aws/registration/registration-form.html). You can also specify
 your locale (defalut: US; you can choose us, uk, jp, fr, de, ca) and your Amazon
@@ -291,6 +323,10 @@ Returns an XML::Amazon::Collection object. i<type> can be Blended, Books, Music,
 =head2 $XML_Amazon->is_success
 
 Returns 1 when successful, otherwise 0. 
+
+=head2 $XML_Amazon_Collection->total_results, $XML_Amazon_Collection->total_pages, $XML_Amazon_Collection->current_page
+
+Returns as such.
 
 =head2 $XML_Amazon_Collection->collection
 
@@ -320,7 +356,7 @@ Yusuke Sugiyama, E<lt>ally@blinkingstar.netE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Yusuke Sugiyama
+Copyright (C) 2009 by Yusuke Sugiyama
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.6 or,

@@ -11,5 +11,4 @@ lib/XML/Amazon/Collection.pm
 lib/XML/Amazon/Item.pm
 Makefile.PL
 MANIFEST			This list of files
-META.yml
 t/XML-Amazon.t
