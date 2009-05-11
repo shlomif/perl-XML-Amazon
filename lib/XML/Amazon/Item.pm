@@ -3,8 +3,7 @@ package XML::Amazon::Item;
 use strict;
 use LWP::Simple;
 use XML::Simple;
-
-binmode STDOUT => ":bytes";
+use utf8;
 
 sub new{
 	my($pkg, %options) = @_;

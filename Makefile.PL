@@ -6,4 +6,5 @@ requires 'XML::Simple' => '0';
 requires 'Data::Dumper' => '0';
 requires 'URI::Escape' => '0';
 requires 'Digest::SHA' => '0';
+requires 'POSIX' => '0';
 WriteAll;

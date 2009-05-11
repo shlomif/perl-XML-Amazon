@@ -10,10 +10,11 @@ use XML::Amazon::Collection;
 use Data::Dumper qw ();
 use URI::Escape qw();
 use Digest::SHA qw(hmac_sha256_hex hmac_sha256_base64);
+use POSIX qw(strftime);
 
 binmode STDOUT => ":bytes";
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 sub new{
 	my($pkg, %options) = @_;
@@ -33,12 +34,13 @@ sub new{
 	$url = 'ecs.amazonaws.ca' if $locale eq "ca";
 	$url = 'ecs.amazonaws.com' if $locale eq "us";
 	
+	
 	my $req = {
 		'Service' => 'AWSECommerceService',
 		'AWSAccessKeyId' => $options{'token'},
 		'AssociateTag' => $associate,
 		'Version' => '2009-03-31',
-		'Timestamp' => '2009-05-10T12:00:00Z'
+		'Timestamp' => strftime( "%Y-%m-%dT%TZ", gmtime() )
 	};
 	
 	bless{
@@ -76,7 +78,6 @@ sub asin{
 	$params{'ResponseGroup'} = 'Images,ItemAttributes';
 	$params{'ItemId'} = $asin;
 	$params{'Version'} = '2009-03-31';
-	$params{'Timestamp'} = '2009-05-10T12:00:00Z';
 	
 	my $data = $self->get_data(\%params);
 		
