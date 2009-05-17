@@ -12,9 +12,7 @@ use URI::Escape qw();
 use Digest::SHA qw(hmac_sha256_hex hmac_sha256_base64);
 use POSIX qw(strftime);
 
-binmode STDOUT => ":bytes";
-
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 sub new{
 	my($pkg, %options) = @_;
