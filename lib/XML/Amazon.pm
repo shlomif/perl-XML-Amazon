@@ -268,8 +268,10 @@ sub Dumper{
 }
 
 1;
+
 __END__
-# Below is stub documentation for your module. You'd better edit it!
+
+=encoding utf8
 
 =head1 NAME
 
@@ -360,6 +362,5 @@ Copyright (C) 2009 by Yusuke Sugiyama
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.6 or,
 at your option, any later version of Perl 5 you may have available.
-
 
 =cut
