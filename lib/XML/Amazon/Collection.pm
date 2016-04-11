@@ -17,10 +17,10 @@ sub new{
 	bless $data, $pkg;
 }
 
-sub add_Amazon{
+sub add_Amazon {
 	my $self = shift;
 	my $add_data = shift;
-	
+
 	if(ref $add_data ne "XML::Amazon::Item") {
 		warn "add_Amazon called with type ", ref $add_data;
 		return undef;
@@ -43,7 +43,7 @@ sub current_page {
 	return $self->{current_page};
 }
 
-sub collection{
+sub collection {
 	my $self = shift;
 	my @list;
 	for (my $i = 0; $self->{collection}->[$i]; $i++){

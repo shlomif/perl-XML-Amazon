@@ -49,23 +49,23 @@ sub made_by{
 	for (my $i; $self->{artists}->[$i]; $i++){
 		push @list, $self->{artists}->[$i];
 	}
-	
+
 	for (my $i; $self->{creators}->[$i]; $i++){
 	push @list, $self->{creators}->[$i];
 	}
-	
+
 	for (my $i; $self->{directors}->[$i]; $i++){
 		push @list, $self->{directors}->[$i];
 	}
-	
+
 	for (my $i; $self->{actors}->[$i]; $i++){
 		push @list, $self->{actors}->[$i];
 	}
-	
-	
+
+
 	my %tmp;
 	@list = grep(  !$tmp{$_}++, @list );
-	
+
 	return @list;
 }
 
@@ -119,11 +119,11 @@ sub author{
 sub image{
 	my $self = shift;
 	my $size = shift;
-	
+
 	return $self->{smallimage} if $size eq 's';
 	return $self->{mediumimage} if $size eq 'm';
 	return $self->{largeimage} if $size eq 'l';
-	
+
 }
 
 sub url{
