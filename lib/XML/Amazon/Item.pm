@@ -5,10 +5,10 @@ use LWP::Simple;
 use XML::Simple;
 use utf8;
 
-sub new{
+sub new {
 	my($pkg, %options) = @_;
 
-	bless{
+	bless {
 		title => $options{'title'},
 		authors => $options{'authors'},
 		artists => $options{'artists'},
@@ -25,7 +25,7 @@ sub new{
 	}, $pkg;
 }
 
-sub creators_all{
+sub creators_all {
 	my $self = shift;
 	my @list;
 	for (my $i; $self->{authors}->[$i]; $i++){
@@ -40,7 +40,7 @@ sub creators_all{
 	return @list;
 }
 
-sub made_by{
+sub made_by {
 	my $self = shift;
 	my @list;
 	for (my $i; $self->{authors}->[$i]; $i++){
@@ -69,7 +69,7 @@ sub made_by{
 	return @list;
 }
 
-sub authors{
+sub authors {
 	my $self = shift;
 	my @list;
 	for (my $i; $self->{authors}->[$i]; $i++){
@@ -78,7 +78,7 @@ sub authors{
 	return @list;
 }
 
-sub artists{
+sub artists {
 	my $self = shift;
 	my @list;
 	for (my $i; $self->{artists}->[$i]; $i++){
@@ -87,7 +87,7 @@ sub artists{
 	return @list;
 }
 
-sub creators{
+sub creators {
 	my $self = shift;
 	my @list;
 	for (my $i; $self->{creators}->[$i]; $i++){
@@ -96,27 +96,27 @@ sub creators{
 	return @list;
 }
 
-sub publisher{
+sub publisher {
 	my $self = shift;
 	return $self->{publisher};
 }
 
-sub asin{
+sub asin {
 	my $self = shift;
 	return $self->{asin};
 }
 
-sub title{
+sub title {
 	my $self = shift;
 	return $self->{title};
 }
 
-sub author{
+sub author {
 	my $self = shift;
 	return @{$self->authors}[0];
 }
 
-sub image{
+sub image {
 	my $self = shift;
 	my $size = shift;
 
@@ -126,19 +126,81 @@ sub image{
 
 }
 
-sub url{
+sub url {
 	my $self = shift;
 	return $self->{url};
 }
 
-sub type{
+sub type {
 	my $self = shift;
 	return $self->{type};
 }
 
-sub price{
+sub price {
 	my $self = shift;
 	return $self->{price};
 }
 
 1;
+
+__END__
+
+=head1 METHODS
+
+=head2 new
+
+Constructor.
+
+=head2 asin
+
+Accessor.
+
+=head2 author
+
+Returns the first author.
+
+=head2 authors
+
+Returns a flattend list of all authors.
+
+=head2 creators
+
+Returns a flattend list of all creators.
+
+=head2 creators_all
+
+All creators authors and artists.
+
+=head2 artists
+
+Accessors. Returns a flattened list.
+
+=head2 $obj->image('s' | 'm' | 'l')
+
+Returns an image of the size.
+
+=head2 made_by
+
+Similar to creators_all.
+
+=head2 price
+
+Accessor.
+
+=head2 publisher
+
+Accessor.
+
+=head2 title
+
+Accessor.
+
+=head2 type
+
+Accessor.
+
+=head2 url
+
+Accessor.
+
+=cut

@@ -53,7 +53,7 @@ sub new{
 	}, $pkg;
 }
 
-sub get{
+sub _get {
 	my $self = shift;
 	my $type = shift;
 	my $query = shift;
@@ -77,7 +77,7 @@ sub asin{
 	$params{'ItemId'} = $asin;
 	$params{'Version'} = '2009-03-31';
 
-	my $data = $self->get_data(\%params);
+	my $data = $self->_get_data(\%params);
 
 	my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Creator', 'Author', 'Artist', 'Director', 'Actor']);
 	my $pl = $xs->XMLin($data);
@@ -154,7 +154,7 @@ sub search{
 	$params{'Keywords'} = $keywords;
 	$params{'ItemPage'} = $page;
 
-	my $data = $self->get_data(\%params);
+	my $data = $self->_get_data(\%params);
 
 	my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Item', 'Creator', 'Author', 'Artist', 'Actor', 'Director']);
 	my $pl = $xs->XMLin($data);
@@ -230,13 +230,13 @@ sub search{
 	}
 }
 
-sub is_success{
+sub is_success {
 	my $self = shift;
 	return $self->{success};
 
 }
 
-sub get_data {
+sub _get_data {
 	my $self = shift;
 	my $params = shift;
 
@@ -260,11 +260,6 @@ sub get_data {
 		or warn 'Couldn\'t get the XML';
 	return $data;
 
-}
-
-sub Dumper{
-	my $self = shift;
-	print Data::Dumper::Dumper($self->{data});
 }
 
 1;
