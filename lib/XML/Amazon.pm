@@ -16,7 +16,7 @@ use URI::Escape qw();
 use Digest::SHA qw(hmac_sha256_hex hmac_sha256_base64);
 use POSIX qw(strftime);
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 sub new{
 	my($pkg, %options) = @_;
