@@ -1,6 +1,8 @@
 package XML::Amazon::Collection;
 
 use strict;
+use warnings;
+
 use XML::Amazon;
 use LWP::Simple;
 use XML::Simple;

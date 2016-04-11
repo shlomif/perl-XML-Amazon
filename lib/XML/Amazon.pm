@@ -1,6 +1,10 @@
 package XML::Amazon;
 
+use 5.008;
+
 use strict;
+use warnings;
+
 use utf8;
 
 use LWP::Simple qw ();

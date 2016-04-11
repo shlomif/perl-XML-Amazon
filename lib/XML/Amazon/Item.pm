@@ -1,6 +1,8 @@
 package XML::Amazon::Item;
 
 use strict;
+use warnings;
+
 use LWP::Simple;
 use XML::Simple;
 use utf8;
