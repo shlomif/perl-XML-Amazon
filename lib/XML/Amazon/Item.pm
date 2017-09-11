@@ -2,9 +2,6 @@ package XML::Amazon::Item;
 
 use strict;
 use warnings;
-
-use LWP::Simple;
-use XML::Simple;
 use utf8;
 
 sub new {
@@ -53,7 +50,7 @@ sub made_by {
 	}
 
 	for (my $i; $self->{creators}->[$i]; $i++){
-	push @list, $self->{creators}->[$i];
+        push @list, $self->{creators}->[$i];
 	}
 
 	for (my $i; $self->{directors}->[$i]; $i++){

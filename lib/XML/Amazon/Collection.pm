@@ -2,10 +2,6 @@ package XML::Amazon::Collection;
 
 use strict;
 use warnings;
-
-use XML::Amazon;
-use LWP::Simple;
-use XML::Simple;
 use utf8;
 
 sub new{
@@ -49,9 +45,12 @@ sub current_page {
 sub collection {
 	my $self = shift;
 	my @list;
-	for (my $i = 0; $self->{collection}->[$i]; $i++){
-		push @list, $self->{collection}->[$i];
-	}
+    LIST: for my $el (@{$self->{collection}}) {
+        if (! $el) {
+            last LIST;
+        }
+        push @list, $el;
+    }
 	return @list;
 }
 
