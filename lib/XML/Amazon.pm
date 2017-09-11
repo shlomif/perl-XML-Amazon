@@ -7,7 +7,7 @@ use warnings;
 
 use utf8;
 
-use LWP::Simple qw ();
+use LWP::UserAgent ();
 use XML::Simple;
 use XML::Amazon::Item;
 use XML::Amazon::Collection;
@@ -260,10 +260,17 @@ sub _get_data {
 
 	push @param, 'Signature=' . URI::Escape::uri_escape($sign, "^A-Za-z0-9\-_.~");
 
-	my $data = LWP::Simple::get('http://' . $url . '/onca/xml?' . join('&', @param))
-		or warn 'Couldn\'t get the XML';
-	return $data;
+    my $ua = LWP::UserAgent->new;
+    $ua->env_proxy;
 
+	my $response = $ua->get('https://' . $url . '/onca/xml?' . join('&', @param));
+    if ($response->is_success()) {
+        return $response->decoded_content;
+    }
+    else {
+        warn $response->status_line;
+        return undef;
+    }
 }
 
 1;
