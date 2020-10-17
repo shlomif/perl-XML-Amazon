@@ -83,5 +83,3 @@ Returns the total results.
 Returns a flattened array of the collection.
 
 =cut
-
-

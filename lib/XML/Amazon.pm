@@ -16,254 +16,252 @@ use URI::Escape qw();
 use Digest::SHA qw(hmac_sha256_hex hmac_sha256_base64);
 use POSIX qw(strftime);
 
-our $VERSION = '0.13';
-
 sub new{
-	my($pkg, %options) = @_;
-	die 'No Access Key ID provided!' unless $options{'token'};
-	die 'No Secret Access Key provided!' unless $options{'sak'};
-	my $locale = $options{'locale'};
-	$locale ||= "us";
-	die "Invalid locale" unless $locale eq "jp" || $locale eq "uk" || $locale eq "fr" || $locale eq "us" || $locale eq "de"|| $locale eq "ca";
-	my $associate = $options{'associate'} || 'webservices-20';
+    my($pkg, %options) = @_;
+    die 'No Access Key ID provided!' unless $options{'token'};
+    die 'No Secret Access Key provided!' unless $options{'sak'};
+    my $locale = $options{'locale'};
+    $locale ||= "us";
+    die "Invalid locale" unless $locale eq "jp" || $locale eq "uk" || $locale eq "fr" || $locale eq "us" || $locale eq "de"|| $locale eq "ca";
+    my $associate = $options{'associate'} || 'webservices-20';
 
-	my $url;
+    my $url;
 
-	$url = 'ecs.amazonaws.jp' if $locale eq "jp";
-	$url = 'ecs.amazonaws.co.uk' if $locale eq "uk";
-	$url = 'ecs.amazonaws.fr' if $locale eq "fr";
-	$url = 'ecs.amazonaws.de' if $locale eq "de";
-	$url = 'ecs.amazonaws.ca' if $locale eq "ca";
-	$url = 'ecs.amazonaws.com' if $locale eq "us";
+    $url = 'ecs.amazonaws.jp' if $locale eq "jp";
+    $url = 'ecs.amazonaws.co.uk' if $locale eq "uk";
+    $url = 'ecs.amazonaws.fr' if $locale eq "fr";
+    $url = 'ecs.amazonaws.de' if $locale eq "de";
+    $url = 'ecs.amazonaws.ca' if $locale eq "ca";
+    $url = 'ecs.amazonaws.com' if $locale eq "us";
 
 
-	my $req = {
-		'Service' => 'AWSECommerceService',
-		'AWSAccessKeyId' => $options{'token'},
-		'AssociateTag' => $associate,
-		'Version' => '2009-03-31',
-		'Timestamp' => strftime( "%Y-%m-%dT%TZ", gmtime() )
-	};
+    my $req = {
+        'Service' => 'AWSECommerceService',
+        'AWSAccessKeyId' => $options{'token'},
+        'AssociateTag' => $associate,
+        'Version' => '2009-03-31',
+        'Timestamp' => strftime( "%Y-%m-%dT%TZ", gmtime() )
+    };
 
-	bless{
-		token => $options{'token'},
-		sak => $options{'sak'},
-		associate => $associate,
-		locale => $locale,
-		url => $url,
-		req => $req,
-		data => undef,
-		success => '0'
-	}, $pkg;
+    bless{
+        token => $options{'token'},
+        sak => $options{'sak'},
+        associate => $associate,
+        locale => $locale,
+        url => $url,
+        req => $req,
+        data => undef,
+        success => '0'
+    }, $pkg;
 }
 
 sub _get {
-	my $self = shift;
-	my $type = shift;
-	my $query = shift;
-	my $field = shift;
-	$self->asin($query) if $type eq "asin";
-	$self->search($query,$field) if $type eq "search";
+    my $self = shift;
+    my $type = shift;
+    my $query = shift;
+    my $field = shift;
+    $self->asin($query) if $type eq "asin";
+    $self->search($query,$field) if $type eq "search";
 }
 
 sub asin{
-	my $self = shift;
-	my $asin = shift;
-	my $url = $self->{url};
-	my $ITEM = XML::Amazon::Item->new();
+    my $self = shift;
+    my $asin = shift;
+    my $url = $self->{url};
+    my $ITEM = XML::Amazon::Item->new();
 
-	warn 'Apparently not an appropriate ASIN' if $asin =~ /[^a-zA-Z0-9]/;
+    warn 'Apparently not an appropriate ASIN' if $asin =~ /[^a-zA-Z0-9]/;
 
-	my %params = %{$self->{req}};
+    my %params = %{$self->{req}};
 
-	$params{'Operation'} = 'ItemLookup';
-	$params{'ResponseGroup'} = 'Images,ItemAttributes';
-	$params{'ItemId'} = $asin;
-	$params{'Version'} = '2009-03-31';
+    $params{'Operation'} = 'ItemLookup';
+    $params{'ResponseGroup'} = 'Images,ItemAttributes';
+    $params{'ItemId'} = $asin;
+    $params{'Version'} = '2009-03-31';
 
-	my $data = $self->_get_data(\%params);
+    my $data = $self->_get_data(\%params);
 
-	my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Creator', 'Author', 'Artist', 'Director', 'Actor']);
-	my $pl = $xs->XMLin($data);
-	$self->{data} = $pl;
+    my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Creator', 'Author', 'Artist', 'Director', 'Actor']);
+    my $pl = $xs->XMLin($data);
+    $self->{data} = $pl;
 
-	if ($pl->{Items}->{Item}->{ASIN}){
-	$ITEM->{asin} = $pl->{Items}->{Item}->{ASIN};
-	$ITEM->{title} = $pl->{Items}->{Item}->{ItemAttributes}->{Title};
-	$ITEM->{type} = $pl->{Items}->{Item}->{ItemAttributes}->{ProductGroup};
-
-
-	if ($pl->{Items}->{Item}->{ItemAttributes}->{Author}->[0]){
-		for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Author}->[$i]; $i++){
-			$ITEM->{authors}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Author}->[$i];
-		}
-	}
-
-	if ($pl->{Items}->{Item}->{ItemAttributes}->{Artist}->[0]){
-		for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Artist}->[$i]; $i++){
-			$ITEM->{artists}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Artist}->[$i];
-		}
-	}
-	if ($pl->{Items}->{Item}->{ItemAttributes}->{Actor}->[0]){
-		for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Actor}->[$i]; $i++){
-			$ITEM->{actors}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Actor}->[$i];
-		}
-	}
-
-	if ($pl->{Items}->{Item}->{ItemAttributes}->{Director}->[0]){
-		for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Director}->[$i]; $i++){
-			$ITEM->{directors}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Director}->[$i];
-		}
-	}
+    if ($pl->{Items}->{Item}->{ASIN}){
+    $ITEM->{asin} = $pl->{Items}->{Item}->{ASIN};
+    $ITEM->{title} = $pl->{Items}->{Item}->{ItemAttributes}->{Title};
+    $ITEM->{type} = $pl->{Items}->{Item}->{ItemAttributes}->{ProductGroup};
 
 
-	if ($pl->{Items}->{Item}->{ItemAttributes}->{Creator}->[0]->{content}){
-		for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Creator}->[$i]->{content}; $i++){
-			$ITEM->{creators}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Creator}->[$i]->{content};
-		}
-	}
+    if ($pl->{Items}->{Item}->{ItemAttributes}->{Author}->[0]){
+        for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Author}->[$i]; $i++){
+            $ITEM->{authors}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Author}->[$i];
+        }
+    }
+
+    if ($pl->{Items}->{Item}->{ItemAttributes}->{Artist}->[0]){
+        for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Artist}->[$i]; $i++){
+            $ITEM->{artists}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Artist}->[$i];
+        }
+    }
+    if ($pl->{Items}->{Item}->{ItemAttributes}->{Actor}->[0]){
+        for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Actor}->[$i]; $i++){
+            $ITEM->{actors}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Actor}->[$i];
+        }
+    }
+
+    if ($pl->{Items}->{Item}->{ItemAttributes}->{Director}->[0]){
+        for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Director}->[$i]; $i++){
+            $ITEM->{directors}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Director}->[$i];
+        }
+    }
 
 
-	$ITEM->{price} = $pl->{Items}->{Item}->{ItemAttributes}->{ListPrice}->{FormattedPrice};
-	$ITEM->{author} = $ITEM->{authors}->[0];
-	$ITEM->{url} = $pl->{Items}->{Item}->{DetailPageURL};
-	$ITEM->{publisher} = $pl->{Items}->{Item}->{ItemAttributes}->{Publisher};
-	$ITEM->{smallimage} = $pl->{Items}->{Item}->{SmallImage}->{URL};
-	$ITEM->{mediumimage} = $pl->{Items}->{Item}->{MediumImage}->{URL};
-	$ITEM->{mediumimage} = $ITEM->{smallimage} unless $ITEM->{mediumimage};
-	$ITEM->{largeimage} = $pl->{Items}->{Item}->{LargeImage}->{URL};
-	$ITEM->{largeimage} = $ITEM->{mediumimage} unless $ITEM->{largeimage};
+    if ($pl->{Items}->{Item}->{ItemAttributes}->{Creator}->[0]->{content}){
+        for (my $i = 0; $pl->{Items}->{Item}->{ItemAttributes}->{Creator}->[$i]->{content}; $i++){
+            $ITEM->{creators}->[$i] = $pl->{Items}->{Item}->{ItemAttributes}->{Creator}->[$i]->{content};
+        }
+    }
 
-	$self->{success} = '1';
-	return $ITEM;
-	}
-	else{
-	$self->{success} = '0';
-	warn 'No item found';
-	return '';
-	}
+
+    $ITEM->{price} = $pl->{Items}->{Item}->{ItemAttributes}->{ListPrice}->{FormattedPrice};
+    $ITEM->{author} = $ITEM->{authors}->[0];
+    $ITEM->{url} = $pl->{Items}->{Item}->{DetailPageURL};
+    $ITEM->{publisher} = $pl->{Items}->{Item}->{ItemAttributes}->{Publisher};
+    $ITEM->{smallimage} = $pl->{Items}->{Item}->{SmallImage}->{URL};
+    $ITEM->{mediumimage} = $pl->{Items}->{Item}->{MediumImage}->{URL};
+    $ITEM->{mediumimage} = $ITEM->{smallimage} unless $ITEM->{mediumimage};
+    $ITEM->{largeimage} = $pl->{Items}->{Item}->{LargeImage}->{URL};
+    $ITEM->{largeimage} = $ITEM->{mediumimage} unless $ITEM->{largeimage};
+
+    $self->{success} = '1';
+    return $ITEM;
+    }
+    else{
+    $self->{success} = '0';
+    warn 'No item found';
+    return '';
+    }
 }
 
 sub search{
-	my($self, %options) = @_;
-	my $keywords = $options{'keywords'};
-	my $type = $options{'type'} || "Blended";
-	my $page = $options{'page'} || 1;
+    my($self, %options) = @_;
+    my $keywords = $options{'keywords'};
+    my $type = $options{'type'} || "Blended";
+    my $page = $options{'page'} || 1;
 
-	my %params = %{$self->{req}};
+    my %params = %{$self->{req}};
 
-	$params{'Operation'} = 'ItemSearch';
-	$params{'SearchIndex'} = $type;
-	$params{'ResponseGroup'} = 'Images,ItemAttributes';
-	$params{'Keywords'} = $keywords;
-	$params{'ItemPage'} = $page;
+    $params{'Operation'} = 'ItemSearch';
+    $params{'SearchIndex'} = $type;
+    $params{'ResponseGroup'} = 'Images,ItemAttributes';
+    $params{'Keywords'} = $keywords;
+    $params{'ItemPage'} = $page;
 
-	my $data = $self->_get_data(\%params);
+    my $data = $self->_get_data(\%params);
 
-	my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Item', 'Creator', 'Author', 'Artist', 'Actor', 'Director']);
-	my $pl = $xs->XMLin($data);
-	$self->{data} = $pl;
+    my $xs = new XML::Simple(SuppressEmpty => undef, ForceArray => ['Item', 'Creator', 'Author', 'Artist', 'Actor', 'Director']);
+    my $pl = $xs->XMLin($data);
+    $self->{data} = $pl;
 
-	my $collection = XML::Amazon::Collection->new();
-	if ($pl->{Items}->{Item}->[0]->{ASIN}){
-		$collection->{total_results} = $pl->{Items}->{TotalResults};
-		$collection->{total_pages} = $pl->{Items}->{TotalPages};
-		$collection->{current_page} = $pl->{Items}->{Request}->{ItemSearchRequest}->{ItemPage};
+    my $collection = XML::Amazon::Collection->new();
+    if ($pl->{Items}->{Item}->[0]->{ASIN}){
+        $collection->{total_results} = $pl->{Items}->{TotalResults};
+        $collection->{total_pages} = $pl->{Items}->{TotalPages};
+        $collection->{current_page} = $pl->{Items}->{Request}->{ItemSearchRequest}->{ItemPage};
 
-		for (my $i = 0; $pl->{Items}->{Item}->[$i]; $i++){
+        for (my $i = 0; $pl->{Items}->{Item}->[$i]; $i++){
 
-			my $new_item = XML::Amazon::Item->new();
+            my $new_item = XML::Amazon::Item->new();
 
-			$new_item->{asin} = $pl->{Items}->{Item}->[$i]->{ASIN};
-			$new_item->{title} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Title};
-			$new_item->{publisher} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Publisher};
-			$new_item->{url} = $pl->{Items}->{Item}->[$i]->{DetailPageURL};
-			$new_item->{type} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{ProductGroup};
+            $new_item->{asin} = $pl->{Items}->{Item}->[$i]->{ASIN};
+            $new_item->{title} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Title};
+            $new_item->{publisher} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Publisher};
+            $new_item->{url} = $pl->{Items}->{Item}->[$i]->{DetailPageURL};
+            $new_item->{type} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{ProductGroup};
 
-			if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Author}->[0]){
-				for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Author}->[$j]; $j++){
-					$new_item->{authors}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Author}->[$j];
-				}
-			}
+            if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Author}->[0]){
+                for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Author}->[$j]; $j++){
+                    $new_item->{authors}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Author}->[$j];
+                }
+            }
 
-			if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Artist}->[0]){
-				for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Artist}->[$j]; $j++){
-					$new_item->{artists}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Artist}->[$j];
-				}
-			}
+            if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Artist}->[0]){
+                for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Artist}->[$j]; $j++){
+                    $new_item->{artists}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Artist}->[$j];
+                }
+            }
 
-			if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Creator}->[0]->{content}){
-				for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Creator}->[$j]->{content}; $j++){
-					$new_item->{creators}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Creator}->[$j]->{content};
-				}
-			}
+            if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Creator}->[0]->{content}){
+                for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Creator}->[$j]->{content}; $j++){
+                    $new_item->{creators}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Creator}->[$j]->{content};
+                }
+            }
 
-			if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Director}->[0]){
-				for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Director}->[$j]; $j++){
-					$new_item->{directors}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Director}->[$j];
-				}
-			}
-
-
-			if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Actor}->[0]){
-				for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Actor}->[$j]; $j++){
-					$new_item->{actors}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Actor}->[$j];
-				}
-			}
+            if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Director}->[0]){
+                for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Director}->[$j]; $j++){
+                    $new_item->{directors}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Director}->[$j];
+                }
+            }
 
 
+            if ($pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Actor}->[0]){
+                for (my $j = 0; $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Actor}->[$j]; $j++){
+                    $new_item->{actors}->[$j] = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{Actor}->[$j];
+                }
+            }
 
-			$new_item->{price} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{ListPrice}->{FormattedPrice};
-			$new_item->{smallimage} = $pl->{Items}->{Item}->[$i]->{SmallImage}->{URL};
-			$new_item->{mediumimage} = $pl->{Items}->{Item}->[$i]->{MediumImage}->{URL};
-			$new_item->{mediumimage} = $new_item->{smallimage} unless $new_item->{mediumimage};
-			$new_item->{largeimage} = $pl->{Items}->{Item}->[$i]->{LargeImage}->{URL};
-			$new_item->{largeimage} = $new_item->{mediumimage} unless $new_item->{largeimage};
 
-			$collection->add_Amazon($new_item);
-		}
-		$self->{success} = '1';
-		return $collection;
 
-	}
+            $new_item->{price} = $pl->{Items}->{Item}->[$i]->{ItemAttributes}->{ListPrice}->{FormattedPrice};
+            $new_item->{smallimage} = $pl->{Items}->{Item}->[$i]->{SmallImage}->{URL};
+            $new_item->{mediumimage} = $pl->{Items}->{Item}->[$i]->{MediumImage}->{URL};
+            $new_item->{mediumimage} = $new_item->{smallimage} unless $new_item->{mediumimage};
+            $new_item->{largeimage} = $pl->{Items}->{Item}->[$i]->{LargeImage}->{URL};
+            $new_item->{largeimage} = $new_item->{mediumimage} unless $new_item->{largeimage};
 
-	else{
-		$self->{success} = '0';
-		warn 'No item found';
-		return '';
-	}
+            $collection->add_Amazon($new_item);
+        }
+        $self->{success} = '1';
+        return $collection;
+
+    }
+
+    else{
+        $self->{success} = '0';
+        warn 'No item found';
+        return '';
+    }
 }
 
 sub is_success {
-	my $self = shift;
-	return $self->{success};
+    my $self = shift;
+    return $self->{success};
 
 }
 
 sub _get_data {
-	my $self = shift;
-	my $params = shift;
+    my $self = shift;
+    my $params = shift;
 
-	my $url = $self->{url};
-	my @param;
-	foreach my $key (sort { $a cmp $b } keys %{$params}){
-		push @param, $key . '=' . URI::Escape::uri_escape(${$params}{$key}, "^A-Za-z0-9\-_.~");
-	}
+    my $url = $self->{url};
+    my @param;
+    foreach my $key (sort { $a cmp $b } keys %{$params}){
+        push @param, $key . '=' . URI::Escape::uri_escape(${$params}{$key}, "^A-Za-z0-9\-_.~");
+    }
 
-	my $string_to_sign = 'GET' . "\n" . $url . "\n" . '/onca/xml' . "\n" .  join('&', @param);
+    my $string_to_sign = 'GET' . "\n" . $url . "\n" . '/onca/xml' . "\n" .  join('&', @param);
 
-	my $sign = hmac_sha256_base64($string_to_sign,$self->{sak});
+    my $sign = hmac_sha256_base64($string_to_sign,$self->{sak});
 
-	while (length($sign) % 4) {
-		$sign .= '=';
-	}
+    while (length($sign) % 4) {
+        $sign .= '=';
+    }
 
-	push @param, 'Signature=' . URI::Escape::uri_escape($sign, "^A-Za-z0-9\-_.~");
+    push @param, 'Signature=' . URI::Escape::uri_escape($sign, "^A-Za-z0-9\-_.~");
 
     my $ua = LWP::UserAgent->new;
     $ua->env_proxy;
 
-	my $response = $ua->get('https://' . $url . '/onca/xml?' . join('&', @param));
+    my $response = $ua->get('https://' . $url . '/onca/xml?' . join('&', @param));
     if ($response->is_success()) {
         return $response->decoded_content;
     }
@@ -285,23 +283,23 @@ XML::Amazon - Perl extension for getting information from Amazon
 
 =head1 SYNOPSIS
 
-	use XML::Amazon;
+    use XML::Amazon;
 
-	my $amazon = XML::Amazon->new(token => AMAZON-ID, sak => Secret Access Key, locale => 'uk');
+    my $amazon = XML::Amazon->new(token => AMAZON-ID, sak => Secret Access Key, locale => 'uk');
 
-	my $item = $amazon->asin('0596101058');## ASIN access
+    my $item = $amazon->asin('0596101058');## ASIN access
 
-	if ($amazon->is_success){
-		print $item->title;
-	}
+    if ($amazon->is_success){
+        print $item->title;
+    }
 
-	my $items = $amazon->search(keywords => 'Perl');## Search by 'Perl'
+    my $items = $amazon->search(keywords => 'Perl');## Search by 'Perl'
 
-	foreach my $item ($items->collection){
-	my $title = $item->title;
-	utf8::encode($title);
-	print $title . "¥n";
-	}
+    foreach my $item ($items->collection){
+    my $title = $item->title;
+    utf8::encode($title);
+    print $title . "¥n";
+    }
 
 =head1 DESCRIPTION
 
